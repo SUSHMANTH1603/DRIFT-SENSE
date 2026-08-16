@@ -21,6 +21,8 @@ from typing import Optional
 import numpy as np
 
 
+import cv2
+
 @dataclass
 class SEMParams:
     """Parameters for the SEM degradation model."""
@@ -51,11 +53,11 @@ class SEMDegradationModel:
         Apply the full SEM degradation pipeline to a clean image.
 
         Pipeline order:
-        1. Edge brightening (gradient-based)
+        1. Edge brightening (secondary electron yield)
         2. PSF blur (Gaussian beam profile)
         3. Contrast/brightness variation
-        4. Charging artifact (low-freq multiplicative field)
-        5. Scan distortion (thin-plate spline)
+        4. Charging artifact (surface potential variation)
+        5. Scan distortion (thin-plate spline/displacement warp)
 
         Args:
             image: Clean structure image (float, [0, 1]).
@@ -63,21 +65,96 @@ class SEMDegradationModel:
         Returns:
             Degraded image with SEM artifacts.
         """
-        # TODO: Implement each degradation stage
-        raise NotImplementedError
+        img = image.copy()
+        img = self.apply_edge_brightening(img)
+        img = self.apply_psf_blur(img)
+        img = img * self.params.contrast_gain + self.params.brightness_offset
+        img = self.apply_charging(img)
+        img = self.apply_scan_distortion(img)
+        return np.clip(img, 0.0, 1.0)
 
     def apply_edge_brightening(self, image: np.ndarray) -> np.ndarray:
         """I_edge = I * (1 + alpha * |grad(h)|)"""
-        raise NotImplementedError
+        dx = cv2.Sobel(image, cv2.CV_64F, 1, 0, ksize=3)
+        dy = cv2.Sobel(image, cv2.CV_64F, 0, 1, ksize=3)
+        grad_mag = np.sqrt(dx**2 + dy**2)
+        
+        max_grad = np.max(grad_mag)
+        if max_grad > 0:
+            grad_mag = grad_mag / max_grad
+            
+        edge_brightened = image * (1.0 + self.params.edge_brightening_alpha * grad_mag)
+        return edge_brightened
 
     def apply_psf_blur(self, image: np.ndarray) -> np.ndarray:
         """Gaussian beam profile + box scan integration."""
-        raise NotImplementedError
+        if self.params.blur_sigma_px <= 0.0:
+            return image
+        # Gaussian blur approximates the beam profile PSF
+        blurred = cv2.GaussianBlur(image, (0, 0), self.params.blur_sigma_px)
+        return blurred
 
     def apply_charging(self, image: np.ndarray) -> np.ndarray:
-        """Low-frequency 2D polynomial multiplicative field."""
-        raise NotImplementedError
+        """Low-frequency 2D polynomial/sinusoidal multiplicative field."""
+        if self.params.charging_amplitude <= 0.0:
+            return image
+        h, w = image.shape
+        y = np.linspace(-1, 1, h)
+        x = np.linspace(-1, 1, w)
+        X, Y = np.meshgrid(x, y)
+        
+        # Generate low-frequency charging variation using random coefficients
+        coeffs = self.rng.normal(0.0, 1.0, 4)
+        charging_field = (
+            coeffs[0] * np.sin(np.pi * X) +
+            coeffs[1] * np.cos(np.pi * Y) +
+            coeffs[2] * np.sin(np.pi * X * Y) +
+            coeffs[3] * X**2
+        )
+        
+        # Normalize to [-1, 1] range
+        c_min, c_max = np.min(charging_field), np.max(charging_field)
+        if c_max > c_min:
+            charging_field = (charging_field - c_min) / (c_max - c_min)
+            charging_field = 2.0 * charging_field - 1.0
+        else:
+            charging_field = np.zeros_like(charging_field)
+            
+        # Multiplicative field: [1 - amp, 1 + amp]
+        mult_field = 1.0 + self.params.charging_amplitude * charging_field
+        return image * mult_field
 
     def apply_scan_distortion(self, image: np.ndarray) -> np.ndarray:
-        """Thin-plate spline warping with control point jitter."""
-        raise NotImplementedError
+        """Warp mapping for nonlinear scan coil response."""
+        if self.params.scan_distortion_amplitude_px <= 0.0:
+            return image
+        h, w = image.shape
+        y = np.linspace(-1, 1, h)
+        x = np.linspace(-1, 1, w)
+        X, Y = np.meshgrid(x, y)
+        
+        # Low frequency displacement field
+        coeffs_x = self.rng.normal(0.0, 1.0, 2)
+        coeffs_y = self.rng.normal(0.0, 1.0, 2)
+        
+        dx_field = self.params.scan_distortion_amplitude_px * (
+            coeffs_x[0] * np.sin(np.pi * Y) + coeffs_x[1] * Y
+        )
+        dy_field = self.params.scan_distortion_amplitude_px * (
+            coeffs_y[0] * np.cos(np.pi * X) + coeffs_y[1] * X
+        )
+        
+        # Map original pixel grid to distorted coordinates
+        map_x, map_y = np.meshgrid(np.arange(w), np.arange(h))
+        map_x = (map_x + dx_field).astype(np.float32)
+        map_y = (map_y + dy_field).astype(np.float32)
+        
+        # Remap image with linear interpolation
+        distorted = cv2.remap(
+            image,
+            map_x,
+            map_y,
+            cv2.INTER_LINEAR,
+            borderMode=cv2.BORDER_REFLECT_101
+        )
+        return distorted

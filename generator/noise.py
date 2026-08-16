@@ -52,12 +52,30 @@ class NoiseModel:
             image: Clean image (float, [0, 1]).
 
         Returns:
-            Noisy image.
+            Noisy image in range [0, 1].
         """
-        # TODO: Implement Poisson-Gaussian noise model
-        # lambda = image * gain * shot_scale
-        # y = Poisson(lambda) + N(0, sigma_read^2)
-        raise NotImplementedError
+        # Base electron dose at shot_scale = 1.0 is 300 electrons/pixel
+        dose = 300.0 / self.params.shot_scale
+        
+        # Ensure image is non-negative
+        lam = np.clip(image * dose, 1e-6, None)
+        
+        # Poisson shot noise (electron counting)
+        electrons = self.rng.poisson(lam).astype(np.float32)
+        
+        # Gaussian read noise
+        read_noise = self.rng.normal(
+            0.0,
+            self.params.read_noise_electrons,
+            size=image.shape
+        ).astype(np.float32)
+        
+        # Total noisy signal in electron counts
+        noisy_electrons = electrons + read_noise
+        
+        # Normalize back to [0, 1] intensity range
+        noisy_image = noisy_electrons / dose
+        return np.clip(noisy_image, 0.0, 1.0)
 
     @staticmethod
     def create_independent_pair(
