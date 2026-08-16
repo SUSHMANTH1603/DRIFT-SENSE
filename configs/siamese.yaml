@@ -1,0 +1,49 @@
+# =============================================================================
+# DRIFT-SENSE: Siamese Verification Network Configuration
+# =============================================================================
+
+# --- Model Architecture ---
+model:
+  backbone: "mobilenetv3_small"     # mobilenetv3_small | mobilenetv3_large
+  embedding_dim: 128
+  pretrained: false                 # No ImageNet pretraining (SEM domain)
+  dropout: 0.1
+
+# --- Training ---
+training:
+  batch_size: 64
+  epochs: 100
+  learning_rate: 1.0e-3
+  weight_decay: 1.0e-4
+  optimizer: "adamw"
+  scheduler:
+    name: "cosine"
+    warmup_epochs: 5
+    min_lr: 1.0e-6
+
+# --- Loss ---
+loss:
+  name: "supervised_contrastive"    # supervised_contrastive | triplet
+  temperature: 0.1
+  margin: 0.5                      # For triplet loss only
+
+# --- Hard Negative Mining ---
+hard_negatives:
+  enabled: true
+  alias_offsets: [-1, 1]            # Pitch multiples for hard negatives
+  random_neg_min_dist_pitches: 3    # Min distance from GT in pitch units
+  ratio_pos_hard_random: [1, 1, 1]  # Ratio of positive : hard-neg : random-neg
+
+# --- Data ---
+data:
+  crop_size: 128
+  num_train_pairs: 50000
+  num_val_pairs: 5000
+  on_the_fly: true                  # Generate pairs during training
+  num_workers: 4
+
+# --- Export ---
+export:
+  onnx_opset: 17
+  output_path: "checkpoints/siamese.onnx"
+  quantize: false                   # INT8 quantization for CPU deployment

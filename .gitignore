@@ -1,0 +1,61 @@
+# ========================
+# Python
+# ========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+*.whl
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter
+.ipynb_checkpoints/
+
+# ========================
+# C++
+# ========================
+cpp/build/
+cpp/cmake-build-*/
+*.o
+*.obj
+*.a
+*.lib
+*.dll
+*.dylib
+*.exe
+
+# ========================
+# Project-specific
+# ========================
+data/generated/
+data/raw/
+results/
+experiments/*.html
+*.onnx
+*.pt
+*.pth
+checkpoints/
+wandb/
+mlruns/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini

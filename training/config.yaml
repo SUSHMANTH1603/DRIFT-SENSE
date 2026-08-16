@@ -1,0 +1,2 @@
+# Training configuration (mirrors configs/siamese.yaml for training-specific overrides)
+# See configs/siamese.yaml for the full model + training config

@@ -1,0 +1,60 @@
+# =============================================================================
+# DRIFT-SENSE: Inference Configuration
+# =============================================================================
+
+# --- Pipeline Mode ---
+pipeline:
+  mode: "hybrid"                    # classical | hybrid | dl_only
+  classical_config: "configs/classical.yaml"
+  siamese_config: "configs/siamese.yaml"
+
+# --- Conditional Routing ---
+routing:
+  high_confidence_margin: 0.15      # Classical path if margin > 15%
+  ambiguous_margin: 0.05            # DL fallback if margin < 5%
+  alias_trigger: true               # Trigger DL if alias cluster detected
+
+# --- Confidence ---
+confidence:
+  weights:
+    score_margin: 0.35
+    periodicity_consistency: 0.20
+    geometric_consistency: 0.20
+    center_prior: 0.10
+    siamese_score: 0.15
+  thresholds:
+    auto_accept: 0.8
+    review: 0.5
+    dl_fallback: 0.3
+    failure: 0.3
+  center_prior:
+    enabled: true
+    disable_margin: 0.15            # Disable center prior when margin > 15%
+
+# --- Periodicity ---
+periodicity:
+  enabled: true
+  alias_distance_tolerance_px: 2.0  # Match if distance mod pitch < 2 px
+
+# --- Siamese Fallback ---
+siamese:
+  model_path: "checkpoints/siamese.onnx"
+  device: "cpu"                     # cpu | cuda
+  context_size: 128
+
+# --- Validation ---
+validation:
+  reprojection_error_threshold: 5.0
+  enabled: true
+
+# --- Performance ---
+performance:
+  num_threads: 4
+  reference_cache: true
+  target_latency_ms: 50             # Classical path target
+
+# --- Output ---
+output:
+  format: "json"                    # json | csv
+  include_metadata: true
+  include_candidates: false

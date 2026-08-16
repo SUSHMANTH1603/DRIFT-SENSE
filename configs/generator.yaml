@@ -1,0 +1,38 @@
+# =============================================================================
+# DRIFT-SENSE: Synthetic Data Generator Configuration
+# =============================================================================
+
+# --- Structure Styles ---
+styles:
+  DRAM:
+    pitch_range_nm: [45, 75]        # Word-line / bit-line pitch (IRDS 2022)
+    contact_ratio: [0.4, 0.6]       # Contact diameter / pitch
+    line_width_ratio: [0.3, 0.5]    # Line width / pitch
+    ler_sigma_nm: [1.0, 2.5]        # Line edge roughness sigma (IMEC 2017)
+    ler_corr_nm: [10, 30]           # LER correlation length
+    cd_variation_3sigma: 0.05        # Critical dimension variation (SPIE 2018)
+
+  FinFET:
+    fin_pitch_nm: [24, 48]          # (IRDS 2022, Chen IEDM 2019)
+    fin_width_nm: [6, 10]
+    gate_pitch_nm: [48, 96]
+    gate_length_nm: [12, 18]        # (Intel US20200258841)
+    ler_fin_sigma_nm: [0.8, 2.0]    # (SPIE 2020)
+    ler_gate_sigma_nm: [1.0, 2.5]
+
+# --- Field of View ---
+fov:
+  reference_um: 1.0                 # 1 µm × 1 µm
+  search_um: 10.0                   # 10 µm × 10 µm
+  image_size_px: 1000               # Both images are 1000 × 1000 px
+  continuous_layout_um: 12.0        # Generate 12 µm × 12 µm continuous
+
+# --- Dataset Generation ---
+dataset:
+  train_count: 1000
+  val_count: 200
+  test_count: 200
+  seed: 42
+  output_dir: "data/generated"
+  format: "png"                     # png | npy | h5
+  save_metadata: true

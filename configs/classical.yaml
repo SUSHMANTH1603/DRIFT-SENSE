@@ -1,0 +1,74 @@
+# =============================================================================
+# DRIFT-SENSE: Classical CV Pipeline Configuration
+# =============================================================================
+
+# --- Preprocessing ---
+preprocessing:
+  clahe:
+    clip_limit: 2.0
+    tile_size: 32
+  unsharp_mask:
+    sigma: 1.5
+    amount: 0.5
+  normalize: true                   # Normalize to [0, 1] float32
+
+# --- Edge Detection ---
+edges:
+  method: "canny"                   # canny | sobel | scharr
+  canny:
+    low_threshold: 50
+    high_threshold: 150
+    adaptive: true                  # Use Otsu-based adaptive thresholds
+    aperture_size: 3
+  morphology:
+    dilate_kernel: 3                # Optional post-Canny dilation
+    erode_kernel: 0
+
+# --- Distance Transform ---
+distance_transform:
+  dist_type: "L2"                   # L2 | L1 | C
+  mask_size: 5
+  normalize_range: [0.0, 1.0]
+
+# --- Phase Correlation (Coarse Localization) ---
+phase_correlation:
+  pyramid_levels: 3
+  level_sizes: [256, 512, 1000]
+  top_k_coarse: 20
+  window: "hann"                    # hann | hamming | none
+
+# --- NCC ---
+ncc:
+  method: "fft"                     # fft | direct
+  top_k_medium: 5
+
+# --- ECC Refinement ---
+ecc:
+  max_iterations: 50
+  epsilon: 1.0e-5
+  motion_model: "euclidean"         # translation | euclidean | affine
+
+# --- Subpixel Fitting ---
+subpixel:
+  method: "gaussian"                # parabolic | gaussian | ecc
+  window_size: 5
+  min_r_squared: 0.9                # Quality gate for fit
+
+# --- Multi-Scale Strategy ---
+multiscale:
+  levels:
+    - name: "L0_coarse"
+      search_size: 256
+      ref_scale: 0.1
+      method: "phase_correlation"
+      top_k: 20
+    - name: "L1_medium"
+      search_size: 512
+      ref_scale: 0.1
+      method: "dt_ncc"
+      top_k: 5
+    - name: "L2_fine"
+      search_size: 1000
+      ref_scale: 0.1
+      method: "dt_ncc_ecc"
+      top_k: 1

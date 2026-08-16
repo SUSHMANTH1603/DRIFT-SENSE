@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DRIFT-SENSE Pair Metadata",
+  "description": "Schema for synthetic image pair metadata (ground truth, noise params, structure info)",
+  "type": "object",
+  "required": ["pair_id", "style", "ground_truth", "noise_params", "structure_params"],
+  "properties": {
+    "pair_id": {
+      "type": "string",
+      "description": "Unique identifier for this image pair"
+    },
+    "style": {
+      "type": "string",
+      "enum": ["DRAM", "FinFET"],
+      "description": "Semiconductor structure style"
+    },
+    "ground_truth": {
+      "type": "object",
+      "required": ["x", "y"],
+      "properties": {
+        "x": { "type": "number", "description": "GT center x in search coordinates (px)" },
+        "y": { "type": "number", "description": "GT center y in search coordinates (px)" },
+        "scale": { "type": "number", "description": "Applied scale factor" },
+        "rotation_deg": { "type": "number", "description": "Applied rotation in degrees" }
+      }
+    },
+    "noise_params": {
+      "type": "object",
+      "properties": {
+        "reference": {
+          "type": "object",
+          "properties": {
+            "shot_scale": { "type": "number" },
+            "read_noise": { "type": "number" },
+            "blur_sigma": { "type": "number" },
+            "edge_brightening_alpha": { "type": "number" },
+            "charging_amplitude": { "type": "number" }
+          }
+        },
+        "search": {
+          "type": "object",
+          "properties": {
+            "shot_scale": { "type": "number" },
+            "read_noise": { "type": "number" },
+            "blur_sigma": { "type": "number" },
+            "edge_brightening_alpha": { "type": "number" },
+            "charging_amplitude": { "type": "number" }
+          }
+        }
+      }
+    },
+    "structure_params": {
+      "type": "object",
+      "properties": {
+        "pitch_x_nm": { "type": "number" },
+        "pitch_y_nm": { "type": "number" },
+        "cd_nm": { "type": "number" },
+        "ler_sigma_nm": { "type": "number" }
+      }
+    },
+    "seed": {
+      "type": "integer",
+      "description": "Random seed used for this pair"
+    }
+  }
+}
